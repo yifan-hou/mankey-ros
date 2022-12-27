@@ -27,7 +27,7 @@ def main():
     keypoint_datamap = None
     with open(keypoint_path, 'r') as file:
         try:
-            keypoint_datamap = yaml.load(file)
+            keypoint_datamap = yaml.load(file, Loader=yaml.Loader)
         except yaml.YAMLError as exc:
             print(exc)
             exit(-1)

@@ -59,7 +59,7 @@ def scene_visualize_random(keypoint_config_map):
 def main():
     keypoint_config_path = os.path.join(raw_image_root, 'scene_keypoint.yaml')
     assert os.path.exists(keypoint_config_path)
-    keypoint_config_map = yaml.load(open(keypoint_config_path, 'r'))
+    keypoint_config_map = yaml.load(open(keypoint_config_path, 'r'), Loader=yaml.Loader)
 
     # Get the frame number and do visualize
     frame_idx = args.frame_idx

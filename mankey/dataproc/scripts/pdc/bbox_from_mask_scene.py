@@ -2,6 +2,13 @@ import os
 import argparse
 import yaml
 import cv2
+
+import sys, os
+mankey_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(sys.path[0]))))
+print('mankey_path: ', mankey_path)
+sys.path.append(mankey_path)
+
+
 from mankey.utils.imgproc import mask2bbox
 
 
@@ -48,11 +55,12 @@ def process_scene(scene_keypoint_map, scene_log_root: str, yaml_out_path: str):
 def main():
     # Check the existence of path
     assert os.path.exists(args.scene_root_path) and os.path.isdir(args.scene_root_path)
+    print('pose_yaml_path: ', args.pose_yaml_path)
     assert os.path.exists(args.pose_yaml_path)
 
     # Load the map and close the file
     pose_data_yaml_file = open(args.pose_yaml_path, 'r')
-    pose_data_yaml = yaml.load(pose_data_yaml_file)
+    pose_data_yaml = yaml.load(pose_data_yaml_file, Loader=yaml.Loader)
     pose_data_yaml_file.close()
 
     # Process it

@@ -1,10 +1,8 @@
 import numpy as np
 import cv2
-import attr
 # from typing import List
 
 
-@attr.s
 class PixelCoord(object):
     """
     A small struct used to index in image.
@@ -466,7 +464,7 @@ def get_guassian_heatmap(
     """
     tmpSize = 3 * sigma
     # Check that any part of the gaussian is in-bounds
-    point = point_float.astype(np.int)
+    point = point_float.astype(np.int_)
     ul = [int(point[0] - tmpSize), int(point[1] - tmpSize)]
     br = [int(point[0] + tmpSize + 1), int(point[1] + tmpSize + 1)]
 

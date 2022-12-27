@@ -43,10 +43,10 @@ def visualize_entry_nostage(
     depth_pred = (depth_pred * config.depth_image_scale) + config.depth_image_mean
 
     # Combine them
-    keypointxy_depth_pred = np.zeros((3, dataset.num_keypoints), dtype=np.int)
-    keypointxy_depth_pred[0, :] = coord_x[0, :, 0].astype(np.int)
-    keypointxy_depth_pred[1, :] = coord_y[0, :, 0].astype(np.int)
-    keypointxy_depth_pred[2, :] = depth_pred[0, :, 0].astype(np.int)
+    keypointxy_depth_pred = np.zeros((3, dataset.num_keypoints), dtype=np.int_)
+    keypointxy_depth_pred[0, :] = coord_x[0, :, 0].astype(np.int_)
+    keypointxy_depth_pred[1, :] = coord_y[0, :, 0].astype(np.int_)
+    keypointxy_depth_pred[2, :] = depth_pred[0, :, 0].astype(np.int_)
 
     # Get the image
     from mankey.utils.imgproc import draw_image_keypoint, draw_visible_heatmap
@@ -112,10 +112,10 @@ def visualize_entry_staged(
     depth_pred = (depth_pred * config.depth_image_scale) + config.depth_image_mean
 
     # Combine them
-    keypointxy_depth_pred = np.zeros((3, dataset.num_keypoints), dtype=np.int)
-    keypointxy_depth_pred[0, :] = coord_x[0, :, 0].astype(np.int)
-    keypointxy_depth_pred[1, :] = coord_y[0, :, 0].astype(np.int)
-    keypointxy_depth_pred[2, :] = depth_pred[0, :, 0].astype(np.int)
+    keypointxy_depth_pred = np.zeros((3, dataset.num_keypoints), dtype=np.int_)
+    keypointxy_depth_pred[0, :] = coord_x[0, :, 0].astype(np.int_)
+    keypointxy_depth_pred[1, :] = coord_y[0, :, 0].astype(np.int_)
+    keypointxy_depth_pred[2, :] = depth_pred[0, :, 0].astype(np.int_)
 
     # Get the image
     from mankey.utils.imgproc import draw_image_keypoint, draw_visible_heatmap

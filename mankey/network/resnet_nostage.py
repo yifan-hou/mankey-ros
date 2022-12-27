@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision.models.resnet import BasicBlock, Bottleneck
-from torchvision.models.resnet import model_zoo, model_urls
+from torchvision.models import resnet34, ResNet34_Weights
 import attr
 
 
@@ -180,23 +180,25 @@ def initialize_backbone_from_modelzoo(
     ):
     assert image_channels == 3 or image_channels == 4
     _, _, _, name = resnet_spec[resnet_num_layers]
-    org_resnet = model_zoo.load_url(model_urls[name])
+    print('Model name: ', name)
+    org_resnet = resnet34(weights=ResNet34_Weights.DEFAULT)
     # Drop orginal resnet fc layer, add 'None' in case of no fc layer, that will raise error
-    org_resnet.pop('fc.weight', None)
-    org_resnet.pop('fc.bias', None)
+    org_resnet.fc = nn.Identity()
+    print(org_resnet)
     # Load the backbone
-    if image_channels is 3:
+    if image_channels == 3:
         backbone.load_state_dict(org_resnet)
-    elif image_channels is 4:
+    elif image_channels == 4:
         # Modify the first conv
-        conv1_weight_old = org_resnet['conv1.weight']
+        conv1_weight_old = org_resnet.conv1.weight
         conv1_weight = torch.zeros((64, 4, 7, 7))
         conv1_weight[:, 0:3, :, :] = conv1_weight_old
         avg_weight = conv1_weight_old.mean(dim=1, keepdim=False)
         conv1_weight[:, 3, :, :] = avg_weight
-        org_resnet['conv1.weight'] = conv1_weight
+        org_resnet.conv1.weight = nn.Parameter(conv1_weight)
+
         # Load it
-        backbone.load_state_dict(org_resnet)
+        backbone.load_state_dict(org_resnet.state_dict())
 
 
 def init_from_modelzoo(

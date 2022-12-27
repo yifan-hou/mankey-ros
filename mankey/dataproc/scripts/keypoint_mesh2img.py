@@ -2,6 +2,12 @@ import argparse
 import os
 import yaml
 import numpy as np
+
+import sys, os
+mankey_path = os.path.dirname(os.path.dirname(os.path.dirname(sys.path[0])))
+print('mankey_path: ', mankey_path)
+sys.path.append(mankey_path)
+
 from mankey.utils.transformations import quaternion_matrix, inverse_matrix
 from typing import List
 
@@ -32,7 +38,7 @@ raw_image_root = os.path.join(scene_processed_root, 'images')
 # The path for camera config
 camera_config_path = os.path.join(raw_image_root, 'camera_info.yaml')
 assert os.path.exists(camera_config_path)
-camera_config_map = yaml.load(open(camera_config_path, 'r'))
+camera_config_map = yaml.load(open(camera_config_path, 'r'), Loader=yaml.Loader)
 focal_x: float = camera_config_map['camera_matrix']['data'][0]
 focal_y: float = camera_config_map['camera_matrix']['data'][4]
 principal_x: float = camera_config_map['camera_matrix']['data'][2]
@@ -46,12 +52,12 @@ def point2pixel(keypoint_in_camera: np.ndarray) -> np.ndarray:
     :param keypoint_in_camera: (4, n_keypoint) keypoint expressed in camera frame in meter
     :return: (3, n_keypoint) where (xy, :) is pixel location and (z, :) is depth in mm
     """
-    assert len(keypoint_in_camera.shape) is 2
+    assert(len(keypoint_in_camera.shape) == 2)
     n_keypoint: int = keypoint_in_camera.shape[1]
-    xy_depth = np.zeros((3, n_keypoint), dtype=np.int)
-    xy_depth[0, :] = (np.divide(keypoint_in_camera[0, :], keypoint_in_camera[2, :]) * focal_x + principal_x).astype(np.int)
-    xy_depth[1, :] = (np.divide(keypoint_in_camera[1, :], keypoint_in_camera[2, :]) * focal_y + principal_y).astype(np.int)
-    xy_depth[2, :] = (1000.0 * keypoint_in_camera[2, :]).astype(np.int)
+    xy_depth = np.zeros((3, n_keypoint), dtype=np.int_)
+    xy_depth[0, :] = (np.divide(keypoint_in_camera[0, :], keypoint_in_camera[2, :]) * focal_x + principal_x).astype(np.int_)
+    xy_depth[1, :] = (np.divide(keypoint_in_camera[1, :], keypoint_in_camera[2, :]) * focal_y + principal_y).astype(np.int_)
+    xy_depth[2, :] = (1000.0 * keypoint_in_camera[2, :]).astype(np.int_)
     return xy_depth
 
 
@@ -160,13 +166,13 @@ def main():
     pose_data_path: str = os.path.join(raw_image_root, 'pose_data.yaml')
     assert os.path.exists(pose_data_path)
     in_pose_file = open(pose_data_path, 'r')
-    pose_data_map = yaml.load(in_pose_file)
+    pose_data_map = yaml.load(in_pose_file, Loader=yaml.Loader)
 
     # Load the keypoint data
     keypoint_data_path = args.keypoint_yaml_path
     assert os.path.exists(keypoint_data_path)
     in_keypoint_file = open(keypoint_data_path, 'r')
-    keypoint_data_map = yaml.load(in_keypoint_file)
+    keypoint_data_map = yaml.load(in_keypoint_file, Loader=yaml.Loader)
     keypoint_in_world = get_keypoint_in_world(keypoint_data_map)
 
     # Do it

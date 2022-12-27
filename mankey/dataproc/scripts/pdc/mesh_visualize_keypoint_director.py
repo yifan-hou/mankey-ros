@@ -83,7 +83,7 @@ def main():
 
     # Open the yaml file and get the map
     annotation_yaml_file = open(annotation_path, 'r')
-    annotation_yaml_list = yaml.load(annotation_yaml_file)
+    annotation_yaml_list = yaml.load(annotation_yaml_file, Loader=yaml.Loader)
     annotation_yaml_file.close()
 
     # Iterate over the list

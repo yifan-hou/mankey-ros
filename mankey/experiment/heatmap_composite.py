@@ -4,6 +4,12 @@ import cv2
 import numpy as np
 import random
 from torch.utils.data import DataLoader
+
+import sys, os
+mankey_path = os.path.dirname(os.path.dirname(sys.path[0]))
+print('mankey_path: ', mankey_path)
+sys.path.append(mankey_path)
+
 from mankey.network.resnet_nostage import ResnetNoStageConfig, ResnetNoStage, init_from_modelzoo
 from mankey.network.weighted_loss import weighted_mse_loss, weighted_l1_loss
 import mankey.network.predict as predict
@@ -22,15 +28,15 @@ def construct_dataset(is_train: bool) -> (SupervisedKeypointDataset, SupervisedK
     # Construct the db info
     db_config = SpartanSupvervisedKeypointDBConfig()
     db_config.keypoint_yaml_name = 'mug_3_keypoint_image.yaml'
-    db_config.pdc_data_root = '/home/wei/data/pdc'
+    db_config.pdc_data_root = '/home/ANT.AMAZON.COM/yifanhou/git/manip_dataset/data'
     if is_train:
-        db_config.config_file_path = '/home/wei/Coding/mankey/config/mugs_up_with_flat_logs.txt'
+        db_config.config_file_path = '/home/ANT.AMAZON.COM/yifanhou/git/mankey-ros/mankey/config/mugs_up_with_flat_logs.txt'
     else:
-        db_config.config_file_path = '/home/wei/Coding/mankey/config/mugs_up_with_flat_test_logs.txt'
+        db_config.config_file_path = '/home/ANT.AMAZON.COM/yifanhou/git/mankey-ros/mankey/config/mugs_up_with_flat_test_logs.txt'
 
     # Construct the database
     database = SpartanSupervisedKeypointDatabase(db_config)
-
+    print('database.num_keypoints: ', database.num_keypoints)
     # Construct torch dataset
     config = SupervisedKeypointDatasetConfig()
     config.network_in_patch_width = 256
@@ -88,10 +94,10 @@ def visualize_entry(
     depth_pred = (depth_pred * config.depth_image_scale) + config.depth_image_mean
 
     # Combine them
-    keypointxy_depth_pred = np.zeros((3, dataset.num_keypoints), dtype=np.int)
-    keypointxy_depth_pred[0, :] = coord_x[0, :, 0].astype(np.int)
-    keypointxy_depth_pred[1, :] = coord_y[0, :, 0].astype(np.int)
-    keypointxy_depth_pred[2, :] = depth_pred[0, :, 0].astype(np.int)
+    keypointxy_depth_pred = np.zeros((3, dataset.num_keypoints), dtype=np.int_)
+    keypointxy_depth_pred[0, :] = coord_x[0, :, 0].astype(np.int_)
+    keypointxy_depth_pred[1, :] = coord_y[0, :, 0].astype(np.int_)
+    keypointxy_depth_pred[2, :] = depth_pred[0, :, 0].astype(np.int_)
 
     # Get the image
     from utils.imgproc import draw_image_keypoint, draw_visible_heatmap

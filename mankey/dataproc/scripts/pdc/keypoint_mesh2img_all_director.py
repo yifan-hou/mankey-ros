@@ -48,6 +48,7 @@ def process_annotation_dict(annotation_dict, keypoint_name_list: List[str]):
     :param keypoint_name_list:
     :return:
     """
+
     # Get the exe file
     dir_path = os.path.dirname(os.path.realpath(__file__))
     bbox_exe_file = os.path.join(dir_path, 'bbox_from_mask_scene.py')
@@ -122,12 +123,15 @@ def main():
 
         # Open the yaml file and get the map
         annotation_yaml_file = open(annotation_yaml_path, 'r')
-        annotation_yaml_list = yaml.load(annotation_yaml_file)
+        annotation_yaml_list = yaml.load(annotation_yaml_file, Loader=yaml.Loader)
         annotation_yaml_file.close()
 
         # Iterate over the list
         for annotation_dict in annotation_yaml_list:
+            input("Press Enter to continue")
             # Check the annotation type
+            # print("annotation_dict: ", annotation_dict)
+            # print("args.annotation_type: ", args.annotation_type)
             if 'annotation_type' not in annotation_dict or annotation_dict['annotation_type'] != args.annotation_type:
                 continue
 

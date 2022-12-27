@@ -71,13 +71,16 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
         # For each scene
         self._keypoint_entry_list = []
         self._num_keypoint = -1
+        print('debug: _scene_path_list: ', self._scene_path_list)
         for scene_root in self._scene_path_list:
             # The info code
             if config.verbose:
                 print('Processing: ', scene_root)
 
             # The processing code
+            print('debug: scene_root: ', scene_root)
             scene_entry = self._build_scene_entry(scene_root, config.keypoint_yaml_name)
+            print('debug: scene_entry.size: ', len(scene_root))
             for item in scene_entry:
                 self._keypoint_entry_list.append(item)
 
@@ -98,12 +101,15 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
 
         # Read the config file
         scene_root_list = []
+        print('debug: config.config_file_path: ', config.config_file_path)
         with open(config.config_file_path, 'r') as config_file:
             lines = config_file.read().split('\n')
             for line in lines:
+                print('debug:       line: ', line)
                 if len(line) == 0:
                     continue
                 scene_root = os.path.join(config.pdc_data_root, line)
+                print('debug:       scene_root: ', scene_root)
                 if self._is_scene_valid(scene_root, config.keypoint_yaml_name):
                     scene_root_list.append(scene_root)
 
@@ -132,7 +138,7 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
 
         # Read the yaml map
         keypoint_yaml_file = open(keypoint_yaml_path, 'r')
-        keypoint_yaml_map = yaml.load(keypoint_yaml_file)
+        keypoint_yaml_map = yaml.load(keypoint_yaml_file, Loader=yaml.Loader)
         keypoint_yaml_file.close()
 
         # Iterate over image
@@ -195,7 +201,7 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
         # The pixel coordinate and depth of keypoint
         keypoint_pixelxy_depth_list = image_map['keypoint_pixel_xy_depth']
         assert n_keypoint == len(keypoint_pixelxy_depth_list)
-        entry.keypoint_pixelxy_depth = np.zeros((3, n_keypoint), dtype=np.int)
+        entry.keypoint_pixelxy_depth = np.zeros((3, n_keypoint), dtype=np.int_)
         for i in range(n_keypoint):
             for j in range(3):
                 entry.keypoint_pixelxy_depth[j, i] = keypoint_pixelxy_depth_list[i][j]

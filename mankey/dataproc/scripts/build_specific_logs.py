@@ -38,7 +38,7 @@ def process_singleobj_dataset(config_full_path: str, logs_root_path: str) -> (Li
     """
     with open(config_full_path, 'r') as stream:
         try:
-            single_config = yaml.load(stream)
+            single_config = yaml.load(stream, Loader=yaml.Loader)
             # Check the logs_root_path
             single_logs_root = single_config['logs_root_path']
             assert single_logs_root.__eq__(logs_root_path)
@@ -64,7 +64,7 @@ def process_composite_dataset(config_fullpath: str, output_txt_path: str):
     # The processing loop
     with open(config_fullpath, 'r') as stream:
         try:
-            composite_config = yaml.load(stream)
+            composite_config = yaml.load(stream, Loader=yaml.Loader)
             logs_root_path = composite_config['logs_root_path']
             # Process the single object dataset
             singleobj_config_path = composite_config['single_object_scenes_config_files']
