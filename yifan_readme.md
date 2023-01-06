@@ -6,3 +6,5 @@ mankey/dataproc/scripts/pdc/keypoint_mesh2img_all_director.py
 need to provide all arguments.
 The downloaded data seem to already have the training labels so no need to run this.
 
+
+

@@ -28,11 +28,11 @@ def construct_dataset(is_train: bool) -> (SupervisedKeypointDataset, SupervisedK
     # Construct the db info
     db_config = SpartanSupvervisedKeypointDBConfig()
     db_config.keypoint_yaml_name = 'mug_3_keypoint_image.yaml'
-    db_config.pdc_data_root = '/home/ANT.AMAZON.COM/yifanhou/git/manip_dataset/data'
+    db_config.pdc_data_root = '/home/ANT.AMAZON.COM/yifanhou/Git/manip_dataset/data'
     if is_train:
-        db_config.config_file_path = '/home/ANT.AMAZON.COM/yifanhou/git/mankey-ros/mankey/config/mugs_up_with_flat_logs.txt'
+        db_config.config_file_path = '/home/ANT.AMAZON.COM/yifanhou/Git/mankey-ros/mankey/config/mugs_up_with_flat_logs.txt'
     else:
-        db_config.config_file_path = '/home/ANT.AMAZON.COM/yifanhou/git/mankey-ros/mankey/config/mugs_up_with_flat_test_logs.txt'
+        db_config.config_file_path = '/home/ANT.AMAZON.COM/yifanhou/Git/mankey-ros/mankey/config/mugs_up_with_flat_test_logs.txt'
 
     # Construct the database
     database = SpartanSupervisedKeypointDatabase(db_config)

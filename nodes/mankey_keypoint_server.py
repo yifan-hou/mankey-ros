@@ -89,16 +89,16 @@ class MankeyKeypointDetectionServer(object):
         response.num_keypoints = -1
         return response
 
-    def run(self):
-        rospy.init_node('mankey_keypoint_server')
-        srv = rospy.Service('detect_keypoints', MankeyKeypointDetection, self.handle_keypoint_request)
-        print('The server for mankey keypoint detection initialization OK!')
-        rospy.spin()
+    # def run(self):
+    #     rospy.init_node('mankey_keypoint_server')
+    #     srv = rospy.Service('detect_keypoints', MankeyKeypointDetection, self.handle_keypoint_request)
+    #     print('The server for mankey keypoint detection initialization OK!')
+    #     rospy.spin()
 
 
 def main(netpath):
-    server = MankeyKeypointDetectionServer(netpath)
-    server.run()
+    # server = MankeyKeypointDetectionServer(netpath)
+    # server.run()
 
 
 if __name__ == '__main__':
