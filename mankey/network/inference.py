@@ -8,6 +8,12 @@ import mankey.network.resnet_nostage as resnet_nostage
 import mankey.network.hourglass_staged as hourglass_staged
 import mankey.network.predict as predict
 
+# netconfigs, must be the same as heatmap_xxxx.py
+net_config = resnet_nostage.ResnetNoStageConfig()
+net_config.num_keypoints = 3
+net_config.image_channels = 4
+net_config.depth_per_keypoint = 2
+net_config.num_layers = 34
 
 # The construction of network
 def construct_resnet_nostage(chkpt_path):
@@ -19,17 +25,15 @@ def construct_resnet_nostage(chkpt_path):
     :param chkpt_path: The path to checkpoint
     :return: (ResnetNoStage, ResnetNoStageConfig)
     """
-    # The state dict of the network
+
     state_dict = torch.load(chkpt_path)
-    n_keypoint = state_dict['head_net.features.9.weight'].shape[0] // 2
-    assert n_keypoint * 2 == state_dict['head_net.features.9.weight'].shape[0]
+
+    # The state dict of the network
+    # check the output channel number
+    n_keypoint = state_dict['head_net.features.9.weight'].shape[0] // net_config.depth_per_keypoint
+    assert n_keypoint * net_config.depth_per_keypoint == state_dict['head_net.features.9.weight'].shape[0]
 
     # Construct the network
-    net_config = resnet_nostage.ResnetNoStageConfig()
-    net_config.num_keypoints = n_keypoint
-    net_config.image_channels = 4
-    net_config.depth_per_keypoint = 2
-    net_config.num_layers = 34
     network = resnet_nostage.ResnetNoStage(net_config)
 
     # Load the network
@@ -201,8 +205,10 @@ def inference_resnet_nostage(
 
     # Do forward
     raw_pred = network(stacked_rgbd)
-    num_keypoints = raw_pred.shape[1] // 2
-    assert raw_pred.shape[1] == 2 * num_keypoints
+    num_keypoints = raw_pred.shape[1] // net_config.depth_per_keypoint
+    # print("raw_pred.shape: ", raw_pred.shape)
+    assert raw_pred.shape[1] == net_config.depth_per_keypoint * num_keypoints
+    assert num_keypoints == net_config.num_keypoints
     prob_pred = raw_pred[:, 0:num_keypoints, :, :]
     depthmap_pred = raw_pred[:, num_keypoints:, :, :]
     heatmap = predict.heatmap_from_predict(prob_pred, num_keypoints)

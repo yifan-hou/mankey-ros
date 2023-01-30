@@ -174,6 +174,8 @@ def depth_integration(heatmap, depth_pred):  # type: (torch.Tensor, torch.Tensor
     :param depth_pred: (batch_size, n_keypoint, map_height, map_width) depth map
     :return: (batch_size, n_keypoint, 1) depth prediction.
     """
+    # print("heatmap.shape: ", heatmap.shape)
+    # print("depth_pred.shape: ", depth_pred.shape)
     assert heatmap.shape == depth_pred.shape
     n_batch, n_keypoint, _, _ = heatmap.shape
     # The pointwise product

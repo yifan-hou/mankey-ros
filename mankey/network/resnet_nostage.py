@@ -36,7 +36,7 @@ class DeconvHead(nn.Module):
                  num_filters,  # type: int
                  kernel_size,  # type: int
                  conv_kernel_size,  # type: int
-                 num_joints,  # type: int
+                 num_joints,  # type: int # i.e. number of keypoints
                  depth_dim,  # type: int
                  with_bias_end=True):
         super(DeconvHead, self).__init__()

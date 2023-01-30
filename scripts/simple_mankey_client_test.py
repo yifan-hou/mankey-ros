@@ -22,7 +22,6 @@ import numpy as np
 # from geometry_msgs.msg import Point
 # from cv_bridge import CvBridge, CvBridgeError
 
-
 class MankeyKeypointDetectionServer(object):
 
     def __init__(self, network_chkpt_path):
@@ -34,8 +33,8 @@ class MankeyKeypointDetectionServer(object):
     def handle_keypoint_request(self, request):
         # Decode the image
         try:
-            cv_color = request.rgb_image
-            cv_depth = request.depth_image
+            cv_color = request["rgb_image"]
+            cv_depth = request["depth_image"]
         except CvBridgeError as err:
             print('Image conversion error. Please check the image encoding.')
             print(err.message)
@@ -43,22 +42,20 @@ class MankeyKeypointDetectionServer(object):
 
         # The image is correct, perform inference
         try:
-            bbox = request.bounding_box
+            bbox = request["bounding_box"]
             camera_keypoint = self.process_request_raw(cv_color, cv_depth, bbox)
         except (RuntimeError, TypeError, ValueError):
             print('The inference is not correct.')
             return self.get_invalid_response()
 
         # The response
-        response = []
-        response.num_keypoints = camera_keypoint.shape[1]
-        response.keypoints_camera_frame = []
+        response = {
+            "num_keypoints": camera_keypoint.shape[1],
+            "keypoints_camera_frame": []
+        }
         for i in range(camera_keypoint.shape[1]):
-            point = Point()
-            point.x = camera_keypoint[0, i]
-            point.y = camera_keypoint[1, i]
-            point.z = camera_keypoint[2, i]
-            response.keypoints_camera_frame.append(point)
+            point = np.array([camera_keypoint[0, i], camera_keypoint[1, i], camera_keypoint[2, i]])
+            response["keypoints_camera_frame"].append(point)
         return response
 
     def process_request_raw(
@@ -69,10 +66,10 @@ class MankeyKeypointDetectionServer(object):
     ):  # type: (np.ndarray, np.ndarray, RegionOfInterest) -> np.ndarray
         # Parse the bounding box
         top_left, bottom_right = PixelCoord(), PixelCoord()
-        top_left.x = bbox.x_offset
-        top_left.y = bbox.y_offset
-        bottom_right.x = bbox.x_offset + bbox.width
-        bottom_right.y = bbox.y_offset + bbox.height
+        top_left.x = bbox["x_offset"]
+        top_left.y = bbox["y_offset"]
+        bottom_right.x = bbox["x_offset"] + bbox["width"]
+        bottom_right.y = bbox["y_offset"] + bbox["height"]
 
         # Perform the inference
         imgproc_out = inference.proc_input_img_raw(
@@ -110,19 +107,21 @@ def main(visualize):
     detect_keypoint = MankeyKeypointDetectionServer(model_path)
 
     # The bounding box
-    roi = RegionOfInterest()
-    roi.x_offset = 261
-    roi.y_offset = 194
-    roi.width = 327 - 261
-    roi.height = 260 - 194
+    roi = {
+        "x_offset": 261,
+        "y_offset": 194,
+        "width": 327 - 261,
+        "height": 260 - 194
+    }
 
     # Build the request
     # request = MankeyKeypointDetectionRequest()
-    bridge = CvBridge()
-    request = []
-    request.rgb_image = bridge.cv2_to_imgmsg(cv_rgb, 'bgr8')
-    request.depth_image = bridge.cv2_to_imgmsg(cv_depth)
-    request.bounding_box = roi
+    # bridge = CvBridge()
+    request = {
+        "rgb_image": cv_rgb,
+        "depth_image": cv_depth,
+        "bounding_box": roi
+    }
     response = detect_keypoint.handle_keypoint_request(request)
     print(response)
 
@@ -140,10 +139,10 @@ def main(visualize):
                 o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault))
         vis_list.append(pcd)
 
-        for keypoint in response.keypoints_camera_frame:
+        for keypoint in response["keypoints_camera_frame"]:
             keypoints_coords \
                 = o3d.geometry.TriangleMesh.create_coordinate_frame(
-                    size=0.1, origin=[keypoint.x, keypoint.y, keypoint.z])
+                    size=0.1, origin=keypoint)
             vis_list.append(keypoints_coords)
         o3d.visualization.draw_geometries(vis_list)
 

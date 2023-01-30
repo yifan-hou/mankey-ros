@@ -17,12 +17,10 @@ import mankey.config.parameter as parameter
 from mankey.dataproc.spartan_supervised_db import SpartanSupvervisedKeypointDBConfig, SpartanSupervisedKeypointDatabase
 from mankey.dataproc.supervised_keypoint_loader import SupervisedKeypointDatasetConfig, SupervisedKeypointDataset
 
-
 # Some global parameter
 learning_rate = 2e-4
 n_epoch = 120
 heatmap_loss_weight = 0.1
-
 
 def construct_dataset(is_train: bool) -> (SupervisedKeypointDataset, SupervisedKeypointDatasetConfig):
     # Construct the db info

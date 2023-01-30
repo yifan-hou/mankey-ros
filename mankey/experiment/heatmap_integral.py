@@ -2,6 +2,10 @@ import torch
 import os
 import random
 from torch.utils.data import DataLoader
+import sys, os
+mankey_path = os.path.dirname(os.path.dirname(sys.path[0]))
+print('mankey_path: ', mankey_path)
+sys.path.append(mankey_path)
 from mankey.network.resnet_nostage import ResnetNoStageConfig, ResnetNoStage, init_from_modelzoo
 from mankey.network.weighted_loss import weighted_mse_loss, weighted_l1_loss
 import mankey.network.predict as predict
@@ -15,18 +19,20 @@ from mankey.dataproc.supervised_keypoint_loader import SupervisedKeypointDataset
 learning_rate = 2e-4
 n_epoch = 120
 
-
-def construct_dataset(is_train: bool) -> (torch.utils.data.Dataset, SupervisedKeypointDatasetConfig):
-    # Construct the db
+def construct_dataset(is_train: bool) -> (SupervisedKeypointDataset, SupervisedKeypointDatasetConfig):
+    # Construct the db info
     db_config = SpartanSupvervisedKeypointDBConfig()
-    db_config.keypoint_yaml_name = 'shoe_6_keypoint_image.yaml'
-    db_config.pdc_data_root = '/home/wei/data/pdc'
+    db_config.keypoint_yaml_name = 'mug_3_keypoint_image.yaml'
+    db_config.pdc_data_root = '/home/ANT.AMAZON.COM/yifanhou/git/manip_dataset/data'
     if is_train:
-        db_config.config_file_path = '/home/wei/Coding/mankey/config/boot_logs.txt'
+        db_config.config_file_path = '/home/ANT.AMAZON.COM/yifanhou/git/mankey-ros/mankey/config/mugs_up_with_flat_logs.txt'
     else:
-        db_config.config_file_path = '/home/wei/Coding/mankey/config/heels_20190307.txt'
-    database = SpartanSupervisedKeypointDatabase(db_config)
+        db_config.config_file_path = '/home/ANT.AMAZON.COM/yifanhou/git/mankey-ros/mankey/config/mugs_up_with_flat_test_logs.txt'
 
+    # Construct the database
+    print(db_config)
+    database = SpartanSupervisedKeypointDatabase(db_config)
+    print('database.num_keypoints: ', database.num_keypoints)
     # Construct torch dataset
     config = SupervisedKeypointDatasetConfig()
     config.network_in_patch_width = 256
@@ -41,7 +47,8 @@ def construct_dataset(is_train: bool) -> (torch.utils.data.Dataset, SupervisedKe
 
 def construct_network():
     net_config = ResnetNoStageConfig()
-    net_config.num_keypoints = 6
+    net_config.num_keypoints = 3
+    # net_config.num_keypoints = 6
     net_config.image_channels = 4
     net_config.depth_per_keypoint = 2
     net_config.num_layers = 34
@@ -100,7 +107,7 @@ def train(checkpoint_dir: str, start_from_ckpnt: str = '', save_epoch_offset: in
     # The training loop
     for epoch in range(n_epoch):
         # Save the network
-        if epoch % 500 == 0 and epoch > 0:
+        if epoch % 4 == 0 and epoch > 0:
             file_name = 'checkpoint-%d.pth' % (epoch + save_epoch_offset)
             checkpoint_path = os.path.join(checkpoint_dir, file_name)
             print('Save the network at %s' % checkpoint_path)
@@ -171,10 +178,12 @@ def train(checkpoint_dir: str, start_from_ckpnt: str = '', save_epoch_offset: in
 
 if __name__ == '__main__':
     checkpoint_dir = os.path.join(os.path.dirname(__file__), 'ckpnt')
-    net_path = 'ckpnt/checkpoint-110.pth'
-    #train(checkpoint_dir=checkpoint_dir)
 
-    # The visualization code
+    # # train
+    # train(checkpoint_dir=checkpoint_dir)
+
+    # visualization
+    net_path = os.path.join(checkpoint_dir, 'checkpoint-116.pth')
     tmp_dir = 'tmp'
     if not os.path.exists(tmp_dir):
        os.mkdir(tmp_dir)
