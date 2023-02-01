@@ -10,16 +10,16 @@ class SupervisedKeypointDBEntry:
     # The path to rgb is must
     rgb_image_path = ''
 
-    # The path to depth image
-    depth_image_path = ''
+    # # The path to depth image
+    # depth_image_path = ''
 
     # The path to mask image
     binary_mask_path = ''
 
-    # If length zero, indicates no depth
-    @property
-    def has_depth(self):
-        return len(self.depth_image_path) > 0
+    # # If length zero, indicates no depth
+    # @property
+    # def has_depth(self):
+    #     return len(self.depth_image_path) > 0
 
     @property
     def has_mask(self):
@@ -36,7 +36,7 @@ class SupervisedKeypointDBEntry:
 
     # (pixel_x, pixel_y, mm_depth) for each keypoint
     # Note that the pixel might be outside the image space
-    keypoint_pixelxy_depth = None
+    keypoint_pixelxy = None
 
     # Each element indicate the validity of the corresponded keypoint coordinate
     # 1 means valid, 0 means not valid

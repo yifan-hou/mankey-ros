@@ -55,21 +55,21 @@ class ProcessedEntry:
     # The image transfrom from tight bounding box to cropped patch
     bbox2patch = np.ndarray(shape=[])
 
-    # The np array in (n_keypoint, 3). The pixel xy are in cropped_rgb.shape, the depth is in mm.
-    keypoint_xy_depth = np.ndarray(shape=[])
+    # The np array in (n_keypoint, 2). The pixel xy are in cropped_rgb.shape,
+    keypoint_xy = np.ndarray(shape=[])
     keypoint_validity = np.ndarray(shape=[])
 
     # The target heatmap value
     target_heatmap = np.ndarray(shape=[])
 
-    # The optional info
-    cropped_depth = np.ndarray(shape=[])  # (width, height) depth image, the depth is in mm
-    cropped_binary_mask = np.ndarray(shape=[])  # (width, height) 0-1 mask
+    # # The optional info
+    # cropped_depth = np.ndarray(shape=[])  # (width, height) depth image, the depth is in mm
+    # cropped_binary_mask = np.ndarray(shape=[])  # (width, height) 0-1 mask
 
-    # Some method to check the existance of entry
-    @property
-    def has_depth(self):
-        return self.cropped_depth.shape == self.cropped_rgb.shape[0:2]
+    # # Some method to check the existance of entry
+    # @property
+    # def has_depth(self):
+    #     return self.cropped_depth.shape == self.cropped_rgb.shape[0:2]
 
     @property
     def has_mask(self):
@@ -121,8 +121,8 @@ class SupervisedKeypointDataset(data.Dataset):
 
         # Check the total size of tensor
         tensor_channels = rgb_channels
-        if processed_entry.has_depth:
-            tensor_channels += 1
+        # if processed_entry.has_depth:
+        #     tensor_channels += 1
 
         # Construct the tensor
         stacked_tensor = np.zeros(shape=(tensor_channels, height, width), dtype=np.float32)
@@ -130,33 +130,33 @@ class SupervisedKeypointDataset(data.Dataset):
 
         # Process other channels
         channel_offset = rgb_channels
-        if processed_entry.has_depth:
-            # The depth should not be randomized
-            normalized_depth = depth_image_normalize(
-                processed_entry.cropped_depth,
-                self._config.depth_image_clip,
-                self._config.depth_image_mean,
-                self._config.depth_image_scale)
-            stacked_tensor[channel_offset, :, :] = normalized_depth
-            channel_offset += 1
+        # if processed_entry.has_depth:
+        #     # The depth should not be randomized
+        #     normalized_depth = depth_image_normalize(
+        #         processed_entry.cropped_depth,
+        #         self._config.depth_image_clip,
+        #         self._config.depth_image_mean,
+        #         self._config.depth_image_scale)
+        #     stacked_tensor[channel_offset, :, :] = normalized_depth
+        #     channel_offset += 1
 
         # Do scale on keypoint xy and depth
-        normalized_keypoint_xy_depth = processed_entry.keypoint_xy_depth.copy()
-        normalized_keypoint_xy_depth[0, :] = (processed_entry.keypoint_xy_depth[0, :] / float(width)) - 0.5
-        normalized_keypoint_xy_depth[1, :] = (processed_entry.keypoint_xy_depth[1, :] / float(height)) - 0.5
-        normalized_keypoint_xy_depth[2, :] = \
-            (processed_entry.keypoint_xy_depth[2, :] - self._config.depth_image_mean) / float(self._config.depth_image_scale)
-        normalized_keypoint_xy_depth = np.transpose(normalized_keypoint_xy_depth, (1, 0))
+        normalized_keypoint_xy = processed_entry.keypoint_xy.copy()
+        normalized_keypoint_xy[0, :] = (processed_entry.keypoint_xy[0, :] / float(width)) - 0.5
+        normalized_keypoint_xy[1, :] = (processed_entry.keypoint_xy[1, :] / float(height)) - 0.5
+        # normalized_keypoint_xy[2, :] = \
+        #     (processed_entry.keypoint_xy[2, :] - self._config.depth_image_mean) / float(self._config.depth_image_scale)
+        normalized_keypoint_xy = np.transpose(normalized_keypoint_xy, (1, 0))
 
         # OK
         validity = np.transpose(processed_entry.keypoint_validity, (1, 0))
         return {
-            parameter.rgbd_image_key: stacked_tensor,
-            parameter.keypoint_xyd_key: normalized_keypoint_xy_depth.astype(np.float32),
+            parameter.rgb_image_key: stacked_tensor,
+            parameter.keypoint_xy_key: normalized_keypoint_xy.astype(np.float32),
             parameter.keypoint_validity_key: validity.astype(np.float32),
             parameter.target_heatmap_key: processed_entry.target_heatmap.astype(np.float32)
         }
-        #return stacked_tensor, normalized_keypoint_xy_depth.astype(np.float32), \
+        #return stacked_tensor, normalized_keypoint_xy.astype(np.float32), \
         #       validity.astype(np.float32), processed_entry.target_heatmap.astype(np.float32)
 
     def __len__(self):
@@ -192,18 +192,18 @@ class SupervisedKeypointDataset(data.Dataset):
             scale=scale, rot_rad=rot_rad)
 
         # Transform the keypoint
-        pixelxy_depth, validity = self._get_transformed_keypoint(
+        pixelxy, validity = self._get_transformed_keypoint(
             bbox2patch, entry,
             self._network_in_patch_width, self._network_in_patch_height)
 
         # Save to processed_entry, these info must be there
         processed_entry.cropped_rgb = warped_rgb
         processed_entry.bbox2patch = bbox2patch
-        processed_entry.keypoint_xy_depth = pixelxy_depth
+        processed_entry.keypoint_xy = pixelxy
         processed_entry.keypoint_validity = validity
 
         # Compute the guassian heatmap
-        n_keypoint = pixelxy_depth.shape[1]
+        n_keypoint = pixelxy.shape[1]
         processed_entry.target_heatmap = np.zeros(shape=(
             n_keypoint,
             self._network_out_map_height,
@@ -213,18 +213,18 @@ class SupervisedKeypointDataset(data.Dataset):
         ratio = self._network_out_map_width / self._network_in_patch_width
         for i in range(n_keypoint):
             processed_entry.target_heatmap[i, :, :] = get_guassian_heatmap(
-                pixelxy_depth[0:2, i] * ratio,
+                pixelxy[0:2, i] * ratio,
                 heatmap_size=self._network_out_map_width)
 
-        # The depth image
-        if entry.has_depth:
-            warped_depth, _ = get_bbox_cropped_image_path(
-                imgpath=entry.depth_image_path, is_rgb=False,
-                bbox_topleft=entry.bbox_top_left, bbox_bottomright=entry.bbox_bottom_right,
-                patch_width=self._network_in_patch_width, patch_height=self._network_in_patch_height,
-                bbox_scale=self._config.bbox_scale, on_boundary=entry.on_boundary,
-                scale=scale, rot_rad=rot_rad)
-            processed_entry.cropped_depth = warped_depth
+        # # The depth image
+        # if entry.has_depth:
+        #     warped_depth, _ = get_bbox_cropped_image_path(
+        #         imgpath=entry.depth_image_path, is_rgb=False,
+        #         bbox_topleft=entry.bbox_top_left, bbox_bottomright=entry.bbox_bottom_right,
+        #         patch_width=self._network_in_patch_width, patch_height=self._network_in_patch_height,
+        #         bbox_scale=self._config.bbox_scale, on_boundary=entry.on_boundary,
+        #         scale=scale, rot_rad=rot_rad)
+        #     processed_entry.cropped_depth = warped_depth
 
         # The binary mask
         if entry.has_mask:
@@ -289,9 +289,9 @@ class SupervisedKeypointDataset(data.Dataset):
         from mankey.utils.imgproc import transform_2d, PixelCoord, pixel_in_bbox
 
         # Allocate the space
-        n_keypoint = entry.keypoint_pixelxy_depth.shape[1]
-        transformed_pixelxy_depth = np.zeros((3, n_keypoint))
-        transformed_validity_weight = np.ones((3, n_keypoint))
+        n_keypoint = entry.keypoint_pixelxy.shape[1]
+        transformed_pixelxy = np.zeros((2, n_keypoint))
+        transformed_validity_weight = np.ones((2, n_keypoint))
 
         # Construct bounding box
         top_left = PixelCoord()
@@ -304,19 +304,19 @@ class SupervisedKeypointDataset(data.Dataset):
         # Do transform
         pixel = PixelCoord()
         for i in range(n_keypoint):
-            transformed_pixelxy_depth[0:2, i] = transform_2d(entry.keypoint_pixelxy_depth[0:2, i], transform)
-            transformed_pixelxy_depth[2, i] = entry.keypoint_pixelxy_depth[2, i]
+            transformed_pixelxy[0:2, i] = transform_2d(entry.keypoint_pixelxy[0:2, i], transform)
+            # transformed_pixelxy[2, i] = entry.keypoint_pixelxy[2, i]
 
             # Check validity
-            pixel.x = int(transformed_pixelxy_depth[0, i])
-            pixel.y = int(transformed_pixelxy_depth[1, i])
+            pixel.x = int(transformed_pixelxy[0, i])
+            pixel.y = int(transformed_pixelxy[1, i])
             if not pixel_in_bbox(pixel, top_left, bottom_right):
                 transformed_validity_weight[0, i] = 0
                 transformed_validity_weight[1, i] = 0
-                transformed_validity_weight[2, i] = 0
+                # transformed_validity_weight[2, i] = 0
 
         # OK
-        return transformed_pixelxy_depth, transformed_validity_weight
+        return transformed_pixelxy, transformed_validity_weight
 
 
 # Simple test code

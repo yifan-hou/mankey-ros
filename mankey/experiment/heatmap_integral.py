@@ -17,7 +17,7 @@ from mankey.dataproc.supervised_keypoint_loader import SupervisedKeypointDataset
 
 # Some global parameter
 learning_rate = 2e-4
-n_epoch = 120
+n_epoch = 121
 
 def construct_dataset(is_train: bool) -> (SupervisedKeypointDataset, SupervisedKeypointDatasetConfig):
     # Construct the db info
@@ -48,9 +48,8 @@ def construct_dataset(is_train: bool) -> (SupervisedKeypointDataset, SupervisedK
 def construct_network():
     net_config = ResnetNoStageConfig()
     net_config.num_keypoints = 3
-    # net_config.num_keypoints = 6
-    net_config.image_channels = 4
-    net_config.depth_per_keypoint = 2
+    net_config.image_channels = 3
+    net_config.depth_per_keypoint = 1
     net_config.num_layers = 34
     network = ResnetNoStage(net_config)
     return network, net_config
@@ -126,32 +125,32 @@ def train(checkpoint_dir: str, start_from_ckpnt: str = '', save_epoch_offset: in
         # The training iteration over the dataset
         for idx, data in enumerate(loader_train):
             # Get the data
-            image = data[parameter.rgbd_image_key]
-            keypoint_xy_depth = data[parameter.keypoint_xyd_key]
+            image = data[parameter.rgb_image_key]
+            keypoint_xy = data[parameter.keypoint_xy_key]
             keypoint_weight = data[parameter.keypoint_validity_key]
 
             # Upload to GPU
             image = image.cuda()
-            keypoint_xy_depth = keypoint_xy_depth.cuda()
+            keypoint_xy = keypoint_xy.cuda()
             keypoint_weight = keypoint_weight.cuda()
 
             # To predict
             optimizer.zero_grad()
             raw_pred = network(image)
             prob_pred = raw_pred[:, 0:net_config.num_keypoints, :, :]
-            depthmap_pred = raw_pred[:, net_config.num_keypoints:, :, :]
+            # depthmap_pred = raw_pred[:, net_config.num_keypoints:, :, :]
             heatmap = predict.heatmap_from_predict(prob_pred, net_config.num_keypoints)
             _, _, heatmap_height, heatmap_width = heatmap.shape
 
             # Compute the coordinate
             coord_x, coord_y = predict.heatmap2d_to_normalized_imgcoord_gpu(heatmap, net_config.num_keypoints)
-            depth_pred = predict.depth_integration(heatmap, depthmap_pred)
+            # depth_pred = predict.depth_integration(heatmap, depthmap_pred)
 
             # Concantate them
-            xy_depth_pred = torch.cat((coord_x, coord_y, depth_pred), dim=2)
+            xy_pred = torch.cat((coord_x, coord_y), dim=2)
 
             # Compute loss
-            loss = weighted_l1_loss(xy_depth_pred, keypoint_xy_depth, keypoint_weight)
+            loss = weighted_l1_loss(xy_pred, keypoint_xy, keypoint_weight)
             loss.backward()
             optimizer.step()
 
@@ -159,32 +158,27 @@ def train(checkpoint_dir: str, start_from_ckpnt: str = '', save_epoch_offset: in
             del loss
 
             # Log info
-            xy_error = float(weighted_l1_loss(xy_depth_pred[:, :, 0:2], keypoint_xy_depth[:, :, 0:2], keypoint_weight[:, :, 0:2]).item())
-            depth_error = float(weighted_l1_loss(xy_depth_pred[:, :, 2], keypoint_xy_depth[:, :, 2], keypoint_weight[:, :, 2]).item())
+            xy_error = float(weighted_l1_loss(xy_pred[:, :, 0:2], keypoint_xy[:, :, 0:2], keypoint_weight[:, :, 0:2]).item())
             if idx % 100 == 0:
                 print('Iteration %d in epoch %d' % (idx, epoch))
-                print('The averaged pixel error is (pixel in 256x256 image): ', 256 * xy_error / len(xy_depth_pred))
-                print('The averaged depth error is (mm): ', 256 * depth_error / len(xy_depth_pred))
+                print('The averaged pixel error is (pixel in 256x256 image): ', 256 * xy_error / len(xy_pred))
 
             # Update info
             train_error_xy += float(xy_error)
-            train_error_depth += float(depth_error)
 
         # The info at epoch level
         print('Epoch %d' % epoch)
         print('The training averaged pixel error is (pixel in 256x256 image): ', 256 * train_error_xy / len(dataset_train))
-        print('The training averaged depth error is (mm): ', train_config.depth_image_scale * train_error_depth / len(dataset_train))
-
 
 if __name__ == '__main__':
     checkpoint_dir = os.path.join(os.path.dirname(__file__), 'ckpnt')
 
-    # # train
-    # train(checkpoint_dir=checkpoint_dir)
+    # train
+    train(checkpoint_dir=checkpoint_dir)
 
-    # visualization
-    net_path = os.path.join(checkpoint_dir, 'checkpoint-116.pth')
-    tmp_dir = 'tmp'
-    if not os.path.exists(tmp_dir):
-       os.mkdir(tmp_dir)
-    visualize(net_path, tmp_dir)
+    # # visualization
+    # net_path = os.path.join(checkpoint_dir, 'checkpoint-116.pth')
+    # tmp_dir = 'tmp'
+    # if not os.path.exists(tmp_dir):
+    #    os.mkdir(tmp_dir)
+    # visualize(net_path, tmp_dir)

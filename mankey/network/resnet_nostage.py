@@ -19,7 +19,7 @@ class ResnetNoStageConfig(object):
     # For 2d keypoint, this value should be one
     # For 2d keypoint + depth, this value should be 2
     # For 3d volumetric keypoint, this value should be the depth resolution
-    depth_per_keypoint = 1
+    depth_per_keypoint = 1 # this should be "output_channels_per_keypoint"
 
 
 # The specification of resnet
@@ -187,7 +187,7 @@ def initialize_backbone_from_modelzoo(
     print(org_resnet)
     # Load the backbone
     if image_channels == 3:
-        backbone.load_state_dict(org_resnet)
+        backbone.load_state_dict(org_resnet.state_dict())
     elif image_channels == 4:
         # Modify the first conv
         conv1_weight_old = org_resnet.conv1.weight

@@ -160,14 +160,14 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
         assert os.path.exists(rgb_path)
         entry.rgb_image_path = rgb_path
 
-        # The path for depth image
-        depth_name = image_map['depth_image_filename']
-        depth_path = os.path.join(scene_root, 'processed/images/' + depth_name)
-        assert os.path.exists(depth_path) # Spartan must have depth image
-        entry.depth_image_path = depth_path
+        # # The path for depth image
+        # depth_name = image_map['depth_image_filename']
+        # depth_path = os.path.join(scene_root, 'processed/images/' + depth_name)
+        # assert os.path.exists(depth_path) # Spartan must have depth image
+        # entry.depth_image_path = depth_path
 
         # The path for mask image
-        mask_name = depth_name[0:6] + '_mask.png'
+        mask_name = rgb_name[0:6] + '_mask.png'
         mask_path = os.path.join(scene_root, 'processed/image_masks/' + mask_name)
         assert os.path.exists(mask_path)
         entry.binary_mask_path = mask_path
@@ -199,23 +199,23 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
                 entry.keypoint_camera[j, i] = keypoint_camera_frame_list[i][j]
 
         # The pixel coordinate and depth of keypoint
-        keypoint_pixelxy_depth_list = image_map['keypoint_pixel_xy_depth']
-        assert n_keypoint == len(keypoint_pixelxy_depth_list)
-        entry.keypoint_pixelxy_depth = np.zeros((3, n_keypoint), dtype=np.int_)
+        keypoint_pixelxy_list = image_map['keypoint_pixel_xy_depth']
+        assert n_keypoint == len(keypoint_pixelxy_list)
+        entry.keypoint_pixelxy = np.zeros((2, n_keypoint), dtype=np.int_)
         for i in range(n_keypoint):
-            for j in range(3):
-                entry.keypoint_pixelxy_depth[j, i] = keypoint_pixelxy_depth_list[i][j]
+            for j in range(2):
+                entry.keypoint_pixelxy[j, i] = keypoint_pixelxy_list[i][j]
 
         # Check the validity
-        entry.keypoint_validity_weight = np.ones((3, n_keypoint))
+        entry.keypoint_validity_weight = np.ones((2, n_keypoint))
         for i in range(n_keypoint):
             pixel = PixelCoord()
-            pixel.x = entry.keypoint_pixelxy_depth[0, i]
-            pixel.y = entry.keypoint_pixelxy_depth[1, i]
-            depth_mm = entry.keypoint_pixelxy_depth[2, i]
+            pixel.x = entry.keypoint_pixelxy[0, i]
+            pixel.y = entry.keypoint_pixelxy[1, i]
+            # depth_mm = entry.keypoint_pixelxy[2, i]
             valid = True
-            if depth_mm < 0:  # The depth cannot be negative
-                valid = False
+            # if depth_mm < 0:  # The depth cannot be negative
+            #     valid = False
 
             # The pixel must be in bounding box
             if not pixel_in_bbox(pixel, entry.bbox_top_left, entry.bbox_bottom_right):
@@ -225,7 +225,7 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
             if not valid:
                 entry.keypoint_validity_weight[0, i] = 0
                 entry.keypoint_validity_weight[1, i] = 0
-                entry.keypoint_validity_weight[2, i] = 0
+                # entry.keypoint_validity_weight[2, i] = 0
                 entry.on_boundary = True
 
         # OK

@@ -34,7 +34,7 @@ class MankeyKeypointDetectionServer(object):
         # Decode the image
         try:
             cv_color = request["rgb_image"]
-            cv_depth = request["depth_image"]
+            # cv_depth = request["depth_image"]
         except CvBridgeError as err:
             print('Image conversion error. Please check the image encoding.')
             print(err.message)
@@ -43,25 +43,25 @@ class MankeyKeypointDetectionServer(object):
         # The image is correct, perform inference
         try:
             bbox = request["bounding_box"]
-            camera_keypoint = self.process_request_raw(cv_color, cv_depth, bbox)
+            keypoint_pixels = self.process_request_raw(cv_color, bbox)
         except (RuntimeError, TypeError, ValueError):
             print('The inference is not correct.')
             return self.get_invalid_response()
 
         # The response
         response = {
-            "num_keypoints": camera_keypoint.shape[1],
-            "keypoints_camera_frame": []
+            "num_keypoints": keypoint_pixels.shape[1],
+            "keypoints_pixels": []
         }
-        for i in range(camera_keypoint.shape[1]):
-            point = np.array([camera_keypoint[0, i], camera_keypoint[1, i], camera_keypoint[2, i]])
-            response["keypoints_camera_frame"].append(point)
+        for i in range(keypoint_pixels.shape[1]):
+            point = np.array([keypoint_pixels[0, i], keypoint_pixels[1, i]])
+            response["keypoints_pixels"].append(point)
         return response
 
     def process_request_raw(
             self,
             cv_color,  # type: np.ndarray
-            cv_depth,  # type: np.ndarray
+            # cv_depth,  # type: np.ndarray
             bbox,  # type: RegionOfInterest
     ):  # type: (np.ndarray, np.ndarray, RegionOfInterest) -> np.ndarray
         # Parse the bounding box
@@ -73,14 +73,14 @@ class MankeyKeypointDetectionServer(object):
 
         # Perform the inference
         imgproc_out = inference.proc_input_img_raw(
-            cv_color, cv_depth,
+            cv_color,
             top_left, bottom_right)
-        keypointxy_depth_scaled = inference.inference_resnet_nostage(self._network, imgproc_out)
-        keypointxy_depth_realunit = inference.get_keypoint_xy_depth_real_unit(keypointxy_depth_scaled)
-        _, camera_keypoint = inference.get_3d_prediction(
-            keypointxy_depth_realunit,
+        keypointxy_scaled = inference.inference_resnet_nostage(self._network, imgproc_out)
+        keypointxy_realunit = inference.get_keypoint_xy_real_unit(keypointxy_scaled)
+        keypointxy_pixel = inference.get_3d_prediction(
+            keypointxy_realunit,
             imgproc_out.bbox2patch)
-        return camera_keypoint
+        return keypointxy_pixel
 
     @staticmethod
     def get_invalid_response():
@@ -103,7 +103,7 @@ def main(visualize):
     cv_rgb = cv2.imread(cv_rbg_path, cv2.IMREAD_COLOR)
     cv_depth = cv2.imread(cv_depth_path, cv2.IMREAD_ANYDEPTH)
 
-    model_path = os.path.join(project_path, 'mankey/experiment/ckpnt/checkpoint-116.pth')
+    model_path = os.path.join(project_path, 'mankey/experiment/ckpnt/checkpoint-120.pth')
     detect_keypoint = MankeyKeypointDetectionServer(model_path)
 
     # The bounding box
@@ -126,25 +126,33 @@ def main(visualize):
     print(response)
 
     if visualize:
-        import open3d as o3d
+        for i in range(response["num_keypoints"]):
+            cv_rgb = cv2.circle(cv_rgb, np.round(response["keypoints_pixels"][i]).astype(np.int32), radius=3, color=(255, 0, 0), thickness=1)
 
-        vis_list = []
+        cv2.imshow('Press any key to quit',cv_rgb)
+        cv2.waitKey(0) # waits until a key is pressed
+        cv2.destroyAllWindows() # destroys the window showing image
 
-        color = o3d.geometry.Image(cv_rgb)
-        depth = o3d.geometry.Image(cv_depth)
-        rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(color, depth)
 
-        pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
-            rgbd, o3d.camera.PinholeCameraIntrinsic(
-                o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault))
-        vis_list.append(pcd)
+        # import open3d as o3d
 
-        for keypoint in response["keypoints_camera_frame"]:
-            keypoints_coords \
-                = o3d.geometry.TriangleMesh.create_coordinate_frame(
-                    size=0.1, origin=keypoint)
-            vis_list.append(keypoints_coords)
-        o3d.visualization.draw_geometries(vis_list)
+        # vis_list = []
+
+        # color = o3d.geometry.Image(cv_rgb)
+        # depth = o3d.geometry.Image(cv_depth)
+        # rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(color, depth)
+
+        # pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
+        #     rgbd, o3d.camera.PinholeCameraIntrinsic(
+        #         o3d.camera.PinholeCameraIntrinsicParameters.PrimeSenseDefault))
+        # vis_list.append(pcd)
+
+        # for keypoint in response["keypoints_camera_frame"]:
+        #     keypoints_coords \
+        #         = o3d.geometry.TriangleMesh.create_coordinate_frame(
+        #             size=0.1, origin=keypoint)
+        #     vis_list.append(keypoints_coords)
+        # o3d.visualization.draw_geometries(vis_list)
 
 
 if __name__ == '__main__':
