@@ -144,7 +144,6 @@ def train(checkpoint_dir: str, start_from_ckpnt: str = '', save_epoch_offset: in
 
             # Compute the coordinate
             coord_x, coord_y = predict.heatmap2d_to_normalized_imgcoord_gpu(heatmap, net_config.num_keypoints)
-            # depth_pred = predict.depth_integration(heatmap, depthmap_pred)
 
             # Concantate them
             xy_pred = torch.cat((coord_x, coord_y), dim=2)

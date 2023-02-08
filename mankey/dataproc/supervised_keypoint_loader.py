@@ -150,14 +150,15 @@ class SupervisedKeypointDataset(data.Dataset):
 
         # OK
         validity = np.transpose(processed_entry.keypoint_validity, (1, 0))
+        # keypoint_validity_key and target_heatmap_key are generated from the data
+        # keypoint_validity: whether the keypoint is in the bounding box or not
+        # target_heatmap: groundtruth heatmap generated from keypoints
         return {
             parameter.rgb_image_key: stacked_tensor,
             parameter.keypoint_xy_key: normalized_keypoint_xy.astype(np.float32),
             parameter.keypoint_validity_key: validity.astype(np.float32),
             parameter.target_heatmap_key: processed_entry.target_heatmap.astype(np.float32)
         }
-        #return stacked_tensor, normalized_keypoint_xy.astype(np.float32), \
-        #       validity.astype(np.float32), processed_entry.target_heatmap.astype(np.float32)
 
     def __len__(self):
         return len(self._entry_list)
@@ -215,16 +216,6 @@ class SupervisedKeypointDataset(data.Dataset):
             processed_entry.target_heatmap[i, :, :] = get_guassian_heatmap(
                 pixelxy[0:2, i] * ratio,
                 heatmap_size=self._network_out_map_width)
-
-        # # The depth image
-        # if entry.has_depth:
-        #     warped_depth, _ = get_bbox_cropped_image_path(
-        #         imgpath=entry.depth_image_path, is_rgb=False,
-        #         bbox_topleft=entry.bbox_top_left, bbox_bottomright=entry.bbox_bottom_right,
-        #         patch_width=self._network_in_patch_width, patch_height=self._network_in_patch_height,
-        #         bbox_scale=self._config.bbox_scale, on_boundary=entry.on_boundary,
-        #         scale=scale, rot_rad=rot_rad)
-        #     processed_entry.cropped_depth = warped_depth
 
         # The binary mask
         if entry.has_mask:

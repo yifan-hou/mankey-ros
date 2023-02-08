@@ -152,6 +152,18 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
         # Ok
         return entry_list
 
+  # [still needs]
+  # rgb_image_filename: 000000_rgb.png
+  # bbox_bottom_right_xy: [298, 267]
+  # bbox_top_left_xy: [240, 176]
+  # keypoint_pixel_xy_depth: (change to xy only)
+  # 
+  # [trying to remove]
+  # camera_to_world:
+  # 3d_keypoint_camera_frame:
+  # 
+  # [deleted]depth_image_filename: 000000_depth.png
+  # [not used] timestamp: 1525887131466600887
     def _get_image_entry(self, image_map, scene_root: str) -> SupervisedKeypointDBEntry:
         entry = SupervisedKeypointDBEntry()
         # The path for rgb image
@@ -172,9 +184,9 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
         assert os.path.exists(mask_path)
         entry.binary_mask_path = mask_path
 
-        # The camera pose in world
-        camera2world_map = image_map['camera_to_world']
-        entry.camera_in_world = camera2world_from_map(camera2world_map)
+        # # The camera pose in world
+        # camera2world_map = image_map['camera_to_world']
+        # entry.camera_in_world = camera2world_from_map(camera2world_map)
 
         # The bounding box
         top_left = PixelCoord()

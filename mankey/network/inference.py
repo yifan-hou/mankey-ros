@@ -85,7 +85,6 @@ class ImageProcOut(object):
 
     # Visualization only
     warped_rgb = np.ndarray(shape=[])
-    # warped_depth = np.ndarray(shape=[])
 
 
 def proc_input_img_internal(
@@ -97,7 +96,6 @@ def proc_input_img_internal(
     """
     The worker for image processing.
     :param rgb: numpy ndarray if is_path_input==False, str if is_path_input==True
-    :param depth: The same as rgb
     :param is_path_input: binary flag for whether the input is path or actual image
     :param bbox_topleft: Tight bounding box by maskrcnn
     :param bbox_bottomright: Tight bounding box by maskrcnn
@@ -110,30 +108,15 @@ def proc_input_img_internal(
             bbox_topleft, bbox_bottomright,
             patch_width=parameter.default_patch_size_input, patch_height=parameter.default_patch_size_input,
             bbox_scale=parameter.bbox_scale)
-        # warped_depth, _ = imgproc.get_bbox_cropped_image_path(
-        #     depth, False,
-        #     bbox_topleft, bbox_bottomright,
-        #     patch_width=parameter.default_patch_size_input, patch_height=parameter.default_patch_size_input,
-        #     bbox_scale=parameter.bbox_scale)
     else:  # Image input
         warped_rgb, bbox2patch = imgproc.get_bbox_cropped_image_raw(
             rgb, True,
             bbox_topleft, bbox_bottomright,
             patch_width=parameter.default_patch_size_input, patch_height=parameter.default_patch_size_input,
             bbox_scale=parameter.bbox_scale)
-        # warped_depth, _ = imgproc.get_bbox_cropped_image_raw(
-        #     depth, False,
-        #     bbox_topleft, bbox_bottomright,
-        #     patch_width=parameter.default_patch_size_input, patch_height=parameter.default_patch_size_input,
-        #     bbox_scale=parameter.bbox_scale)
 
     # Perform normalization
     normalized_rgb = imgproc.rgb_image_normalize(warped_rgb, parameter.rgb_mean, [1.0, 1.0, 1.0])
-    # normalized_depth = imgproc.depth_image_normalize(
-    #     warped_depth,
-    #     parameter.depth_image_clip,
-    #     parameter.depth_image_mean,
-    #     parameter.depth_image_scale)
 
     # Construct the tensor
     channels, height, width = normalized_rgb.shape
