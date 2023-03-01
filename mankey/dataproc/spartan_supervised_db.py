@@ -16,7 +16,7 @@ class SpartanSupvervisedKeypointDBConfig:
     # A list of file indicates which logs will be used for dataset.
     # If None, all logs with keypoint annotation in data_root will be used
     # Usually specific_logs.txt
-    config_file_path = None
+    scene_list_file_path = None
 
     # The name of the yaml file with keypoint and bound-box annotation
     # Relative to the "${pdc_data_root}/logs_proto/2018-10..../processed" folder
@@ -61,12 +61,12 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
         self._config = config  # Not actually use it, but might be useful
 
         # Build a list of scene that will be used as the dataset
-        self._scene_path_list = []
-        if config.config_file_path is not None:
-            self._scene_path_list = self._get_scene_from_config(config)
-        else:
-            # Use everything in pdc root with keypoint annotation
-            raise NotImplementedError
+        # self._scene_path_list = []
+        # if config.scene_list_file_path is not None:
+        self._scene_path_list = self._get_scene_from_config(config)
+        # else:
+        #     # Use everything in pdc root with keypoint annotation
+        #     raise NotImplementedError
 
         # For each scene
         self._keypoint_entry_list = []
@@ -97,18 +97,26 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
 
     def _get_scene_from_config(self, config: SpartanSupvervisedKeypointDBConfig) -> List[str]:
         assert os.path.exists(config.pdc_data_root)
-        assert os.path.exists(config.config_file_path)
 
-        # Read the config file
         scene_root_list = []
-        print('debug: config.config_file_path: ', config.config_file_path)
-        with open(config.config_file_path, 'r') as config_file:
-            lines = config_file.read().split('\n')
-            for line in lines:
-                print('debug:       line: ', line)
-                if len(line) == 0:
+        if config.scene_list_file_path is not None:
+            # Read the config file
+            print('debug: config.scene_list_file_path: ', config.scene_list_file_path)
+            with open(config.scene_list_file_path, 'r') as config_file:
+                lines = config_file.read().split('\n')
+                for line in lines:
+                    print('debug:       line: ', line)
+                    if len(line) == 0:
+                        continue
+                    scene_root = os.path.join(config.pdc_data_root, line)
+                    print('debug:       scene_root: ', scene_root)
+                    if self._is_scene_valid(scene_root, config.keypoint_yaml_name):
+                        scene_root_list.append(scene_root)
+        else:
+            config.pdc_data_root
+            for scene_root in os.listdir(config.pdc_data_root):
+                if folder.startswith("."):
                     continue
-                scene_root = os.path.join(config.pdc_data_root, line)
                 print('debug:       scene_root: ', scene_root)
                 if self._is_scene_valid(scene_root, config.keypoint_yaml_name):
                     scene_root_list.append(scene_root)
@@ -122,8 +130,7 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
             return False
 
         # Must contains keypoint annotation
-        scene_processed_root = os.path.join(scene_root, 'processed')
-        keypoint_yaml_path = os.path.join(scene_processed_root, keypoint_yaml_name)
+        keypoint_yaml_path = os.path.join(scene_root, keypoint_yaml_name)
         if not os.path.exists(keypoint_yaml_path):
             return False
 
@@ -132,8 +139,7 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
 
     def _build_scene_entry(self, scene_root: str, keypoint_yaml_name: str) -> List[SupervisedKeypointDBEntry]:
         # Get the yaml file
-        scene_processed_root = os.path.join(scene_root, 'processed')
-        keypoint_yaml_path = os.path.join(scene_processed_root, keypoint_yaml_name)
+        keypoint_yaml_path = os.path.join(scene_root, keypoint_yaml_name)
         assert os.path.exists(keypoint_yaml_path)
 
         # Read the yaml map
@@ -144,10 +150,10 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
         # Iterate over image
         entry_list = []
         for image_key in keypoint_yaml_map.keys():
-            image_map = keypoint_yaml_map[image_key]
-            image_entry = self._get_image_entry(image_map, scene_root)
-            if image_entry is not None and self._check_image_entry(image_entry):
-                entry_list.append(image_entry)
+            kp_yaml_entry = keypoint_yaml_map[image_key]
+            data_entry = self._get_data_entry(kp_yaml_entry, scene_root)
+            if data_entry is not None and self._check_image_entry(data_entry):
+                entry_list.append(data_entry)
 
         # Ok
         return entry_list
@@ -164,58 +170,54 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
   # 
   # [deleted]depth_image_filename: 000000_depth.png
   # [not used] timestamp: 1525887131466600887
-    def _get_image_entry(self, image_map, scene_root: str) -> SupervisedKeypointDBEntry:
+    def _get_data_entry(self, kp_yaml_entry, scene_root: str) -> SupervisedKeypointDBEntry:
         entry = SupervisedKeypointDBEntry()
         # The path for rgb image
-        rgb_name = image_map['rgb_image_filename']
-        rgb_path = os.path.join(scene_root, 'processed/images/' + rgb_name)
+        rgb_name = kp_yaml_entry['rgb_image_filename']
+        rgb_path = os.path.join(scene_root, 'images/' + rgb_name)
         assert os.path.exists(rgb_path)
         entry.rgb_image_path = rgb_path
 
-        # # The path for depth image
-        # depth_name = image_map['depth_image_filename']
-        # depth_path = os.path.join(scene_root, 'processed/images/' + depth_name)
-        # assert os.path.exists(depth_path) # Spartan must have depth image
-        # entry.depth_image_path = depth_path
-
-        # The path for mask image
-        mask_name = rgb_name[0:6] + '_mask.png'
-        mask_path = os.path.join(scene_root, 'processed/image_masks/' + mask_name)
-        assert os.path.exists(mask_path)
-        entry.binary_mask_path = mask_path
-
-        # # The camera pose in world
-        # camera2world_map = image_map['camera_to_world']
-        # entry.camera_in_world = camera2world_from_map(camera2world_map)
+        # it seems that mask is not yet used
+        # # The path for mask image
+        # mask_name = rgb_name + '.png' # colmap mask format
+        # mask_path = os.path.join(scene_root, 'masks/' + mask_name)
+        # assert os.path.exists(mask_path)
+        # entry.binary_mask_path = mask_path
 
         # The bounding box
         top_left = PixelCoord()
         bottom_right = PixelCoord()
-        top_left.x, top_left.y = image_map['bbox_top_left_xy'][0], image_map['bbox_top_left_xy'][1]
-        bottom_right.x, bottom_right.y = image_map['bbox_bottom_right_xy'][0], image_map['bbox_bottom_right_xy'][1]
+        top_left.x, top_left.y = kp_yaml_entry['bbox_top_left_xy'][0], kp_yaml_entry['bbox_top_left_xy'][1]
+        bottom_right.x, bottom_right.y = kp_yaml_entry['bbox_bottom_right_xy'][0], kp_yaml_entry['bbox_bottom_right_xy'][1]
         entry.bbox_top_left = top_left
         entry.bbox_bottom_right = bottom_right
 
         # The size of keypoint
-        keypoint_camera_frame_list = image_map['3d_keypoint_camera_frame']
-        n_keypoint = len(keypoint_camera_frame_list)
+        # keypoint_camera_frame_list = kp_yaml_entry['3d_keypoint_camera_frame']
+        # n_keypoint = len(keypoint_camera_frame_list)
+        # if self._num_keypoint < 0:
+        #     self._num_keypoint = n_keypoint
+        # else:
+        #     assert self._num_keypoint == n_keypoint
+
+        # # The keypoint in camera frame
+        # entry.keypoint_camera = np.zeros((3, n_keypoint))
+        # for i in range(n_keypoint):
+        #     for j in range(3):
+        #         entry.keypoint_camera[j, i] = keypoint_camera_frame_list[i][j]
+
+        # The pixel coordinate and depth of keypoint
+        keypoint_pixelxy_list = kp_yaml_entry['keypoint_pixel_xy']
+        n_keypoint = len(keypoint_pixelxy_list)
         if self._num_keypoint < 0:
             self._num_keypoint = n_keypoint
         else:
             assert self._num_keypoint == n_keypoint
-
-        # The keypoint in camera frame
-        entry.keypoint_camera = np.zeros((3, n_keypoint))
-        for i in range(n_keypoint):
-            for j in range(3):
-                entry.keypoint_camera[j, i] = keypoint_camera_frame_list[i][j]
-
-        # The pixel coordinate and depth of keypoint
-        keypoint_pixelxy_list = image_map['keypoint_pixel_xy_depth']
-        assert n_keypoint == len(keypoint_pixelxy_list)
         entry.keypoint_pixelxy = np.zeros((2, n_keypoint), dtype=np.int_)
         for i in range(n_keypoint):
             for j in range(2):
+                # each column is a keypoint
                 entry.keypoint_pixelxy[j, i] = keypoint_pixelxy_list[i][j]
 
         # Check the validity
@@ -224,10 +226,7 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
             pixel = PixelCoord()
             pixel.x = entry.keypoint_pixelxy[0, i]
             pixel.y = entry.keypoint_pixelxy[1, i]
-            # depth_mm = entry.keypoint_pixelxy[2, i]
             valid = True
-            # if depth_mm < 0:  # The depth cannot be negative
-            #     valid = False
 
             # The pixel must be in bounding box
             if not pixel_in_bbox(pixel, entry.bbox_top_left, entry.bbox_bottom_right):
@@ -237,7 +236,6 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
             if not valid:
                 entry.keypoint_validity_weight[0, i] = 0
                 entry.keypoint_validity_weight[1, i] = 0
-                # entry.keypoint_validity_weight[2, i] = 0
                 entry.on_boundary = True
 
         # OK
@@ -258,9 +256,9 @@ class SpartanSupervisedKeypointDatabase(SupervisedImageKeypointDatabase):
 # Simple code to test the db
 def spartan_db_test():
     config = SpartanSupvervisedKeypointDBConfig()
-    config.keypoint_yaml_name = 'shoe_6_keypoint_image.yaml'
+    # config.keypoint_yaml_name = 'shoe_6_keypoint_image.yaml'
     config.pdc_data_root = '/home/wei/data/pdc'
-    config.config_file_path = '/home/wei/Coding/mankey/config/boot_logs.txt'
+    config.scene_list_file_path = '/home/wei/Coding/mankey/config/boot_logs.txt'
     database = SpartanSupervisedKeypointDatabase(config)
     entry_list = database.get_entry_list()
     for entry in entry_list:

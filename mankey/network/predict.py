@@ -4,84 +4,85 @@ import torch.cuda.comm
 from torch.nn import functional as F
 
 
-def get_integral_preds_3d_gpu(
-        heatmaps,  # type: torch.Tensor,
-        num_keypoints,  # type: int,
-        x_dim,  # type: int,
-        y_dim,  # type: int,
-        z_dim,  # type: int
-):  # type: (torch.Tensor, int, int, int, int) -> (torch.Tensor, torch.Tensor, torch.Tensor)
-    # Reshape the tensor into 3d
-    heatmaps = heatmaps.reshape((heatmaps.shape[0], num_keypoints, z_dim, y_dim, x_dim))
+# def get_integral_preds_3d_gpu(
+#         heatmaps,  # type: torch.Tensor,
+#         num_keypoints,  # type: int,
+#         x_dim,  # type: int,
+#         y_dim,  # type: int,
+#         z_dim,  # type: int
+# ):  # type: (torch.Tensor, int, int, int, int) -> (torch.Tensor, torch.Tensor, torch.Tensor)
+#     # Reshape the tensor into 3d
+#     heatmaps = heatmaps.reshape((heatmaps.shape[0], num_keypoints, z_dim, y_dim, x_dim))
 
-    # For x_dim, it first sum the z_dim, then sum the y_dim
-    # Note that heatmaps.sum() doesn't use keey_dim
-    # After the sum, should be (batch_size, num_keypoints, x_dim)
-    accu_x = heatmaps.sum(dim=2)
-    accu_x = accu_x.sum(dim=2)
-    accu_y = heatmaps.sum(dim=2)
-    accu_y = accu_y.sum(dim=3)
-    accu_z = heatmaps.sum(dim=3)
-    accu_z = accu_z.sum(dim=3)
+#     # For x_dim, it first sum the z_dim, then sum the y_dim
+#     # Note that heatmaps.sum() doesn't use keey_dim
+#     # After the sum, should be (batch_size, num_keypoints, x_dim)
+#     accu_x = heatmaps.sum(dim=2)
+#     accu_x = accu_x.sum(dim=2)
+#     accu_y = heatmaps.sum(dim=2)
+#     accu_y = accu_y.sum(dim=3)
+#     accu_z = heatmaps.sum(dim=3)
+#     accu_z = accu_z.sum(dim=3)
 
-    # The pointwise product
-    accu_x = accu_x * torch.cuda.comm.broadcast(torch.arange(x_dim), devices=[accu_x.device.index])[0].type(torch.cuda.FloatTensor)
-    accu_y = accu_y * torch.cuda.comm.broadcast(torch.arange(y_dim), devices=[accu_y.device.index])[0].type(torch.cuda.FloatTensor)
-    accu_z = accu_z * torch.cuda.comm.broadcast(torch.arange(z_dim), devices=[accu_z.device.index])[0].type(torch.cuda.FloatTensor)
+#     # The pointwise product
+#     accu_x = accu_x * torch.cuda.comm.broadcast(torch.arange(x_dim), devices=[accu_x.device.index])[0].type(torch.cuda.FloatTensor)
+#     accu_y = accu_y * torch.cuda.comm.broadcast(torch.arange(y_dim), devices=[accu_y.device.index])[0].type(torch.cuda.FloatTensor)
+#     accu_z = accu_z * torch.cuda.comm.broadcast(torch.arange(z_dim), devices=[accu_z.device.index])[0].type(torch.cuda.FloatTensor)
 
-    # Further reduce to three (batch_size, num_keypoints) tensor
-    accu_x = accu_x.sum(dim=2, keepdim=True)
-    accu_y = accu_y.sum(dim=2, keepdim=True)
-    accu_z = accu_z.sum(dim=2, keepdim=True)
-    return accu_x, accu_y, accu_z
+#     # Further reduce to three (batch_size, num_keypoints) tensor
+#     accu_x = accu_x.sum(dim=2, keepdim=True)
+#     accu_y = accu_y.sum(dim=2, keepdim=True)
+#     accu_z = accu_z.sum(dim=2, keepdim=True)
+#     return accu_x, accu_y, accu_z
 
 
-def get_integral_preds_3d_cpu(
-        heatmaps,  # type: torch.Tensor,
-        num_keypoints,  # type: int,
-        x_dim,  # type: int,
-        y_dim,  # type: int,
-        z_dim,  # type: int
-):  # type: (torch.Tensor, int, int, int, int) -> (torch.Tensor, torch.Tensor, torch.Tensor)
-    """
-    Take a normalized volumetric heatmap, get the 3d prediction from it
-    The return in the range of [0-x_dim, 0-y_dim, 0-z_dim]
-    :param heatmaps: The normalized heatmap, i.e., the volumetric sum should be 1
-    :param num_keypoints: The input shape should be (batch_size, n_keypoints * z_dim, y_dim, x_dim)
-    :param x_dim:
-    :param y_dim:
-    :param z_dim:
-    :return: Three tensor in the shape of (batch_size, num_keypoints)
-    """
-    # Reshape the tensor into 3d
-    heatmaps = heatmaps.reshape((heatmaps.shape[0], num_keypoints, z_dim, y_dim, x_dim))
+# def get_integral_preds_3d_cpu(
+#         heatmaps,  # type: torch.Tensor,
+#         num_keypoints,  # type: int,
+#         x_dim,  # type: int,
+#         y_dim,  # type: int,
+#         z_dim,  # type: int
+# ):  # type: (torch.Tensor, int, int, int, int) -> (torch.Tensor, torch.Tensor, torch.Tensor)
+#     """
+#     Take a normalized volumetric heatmap, get the 3d prediction from it
+#     The return in the range of [0-x_dim, 0-y_dim, 0-z_dim]
+#     :param heatmaps: The normalized heatmap, i.e., the volumetric sum should be 1
+#     :param num_keypoints: The input shape should be (batch_size, n_keypoints * z_dim, y_dim, x_dim)
+#     :param x_dim:
+#     :param y_dim:
+#     :param z_dim:
+#     :return: Three tensor in the shape of (batch_size, num_keypoints)
+#     """
+#     # Reshape the tensor into 3d
+#     heatmaps = heatmaps.reshape((heatmaps.shape[0], num_keypoints, z_dim, y_dim, x_dim))
 
-    # For x_dim, it first sum the z_dim, then sum the y_dim
-    # Note that heatmaps.sum() doesn't use keey_dim
-    # After the sum, should be (batch_size, num_keypoints, x_dim)
-    accu_x = heatmaps.sum(dim=2)
-    accu_x = accu_x.sum(dim=2)
-    accu_y = heatmaps.sum(dim=2)
-    accu_y = accu_y.sum(dim=3)
-    accu_z = heatmaps.sum(dim=3)
-    accu_z = accu_z.sum(dim=3)
+#     # For x_dim, it first sum the z_dim, then sum the y_dim
+#     # Note that heatmaps.sum() doesn't use keey_dim
+#     # After the sum, should be (batch_size, num_keypoints, x_dim)
+#     accu_x = heatmaps.sum(dim=2)
+#     accu_x = accu_x.sum(dim=2)
+#     accu_y = heatmaps.sum(dim=2)
+#     accu_y = accu_y.sum(dim=3)
+#     accu_z = heatmaps.sum(dim=3)
+#     accu_z = accu_z.sum(dim=3)
 
-    # The pointwise product
-    accu_x = accu_x * torch.arange(x_dim).type(torch.FloatTensor)
-    accu_y = accu_y * torch.arange(y_dim).type(torch.FloatTensor)
-    accu_z = accu_z * torch.arange(z_dim).type(torch.FloatTensor)
+#     # The pointwise product
+#     accu_x = accu_x * torch.arange(x_dim).type(torch.FloatTensor)
+#     accu_y = accu_y * torch.arange(y_dim).type(torch.FloatTensor)
+#     accu_z = accu_z * torch.arange(z_dim).type(torch.FloatTensor)
 
-    # Further reduce to three (batch_size, num_keypoints) tensor
-    accu_x = accu_x.sum(dim=2, keepdim=True)
-    accu_y = accu_y.sum(dim=2, keepdim=True)
-    accu_z = accu_z.sum(dim=2, keepdim=True)
-    return accu_x, accu_y, accu_z
+#     # Further reduce to three (batch_size, num_keypoints) tensor
+#     accu_x = accu_x.sum(dim=2, keepdim=True)
+#     accu_y = accu_y.sum(dim=2, keepdim=True)
+#     accu_z = accu_z.sum(dim=2, keepdim=True)
+#     return accu_x, accu_y, accu_z
 
 
 def heatmap_from_predict(probability_preds, num_keypoints):  # type: (torch.Tensor, int) -> torch.Tensor:
     """
     Given the probability prediction, compute the actual probability map using softmax.
-    :param probability_preds: (batch_size, n_keypoint, height, width) for 2d heatmap (batch_size, n_keypoint, height, width)
+    :param probability_preds: (batch_size, n_keypoint, height, width) for 2d heatmap
+     (batch_size, n_keypoint, height, width)
     :param num_keypoints:
     :return:
     """
@@ -119,7 +120,7 @@ def heatmap2d_to_imgcoord_cpu(
     accu_y = accu_y.sum(dim=2, keepdim=True)
     return accu_x, accu_y
 
-
+# returns pixel coordinates
 def heatmap2d_to_imgcoord_gpu(
         heatmap,
         num_keypoints):  # type: (torch.Tensor, int) -> (torch.Tensor, torch.Tensor)
@@ -147,7 +148,7 @@ def heatmap2d_to_normalized_imgcoord_gpu(
         num_keypoints):  # type: (torch.Tensor, int) -> (torch.Tensor, torch.Tensor)
     """
     Regress the normalized coordinate for x and y from the heatmap.
-    The range of normalized coordinate is [-0.5, -0.5] in current implementation.
+    The range of normalized coordinate is [-0.5, 0.5] in current implementation.
     :param heatmap:
     :param num_keypoints:
     :return:

@@ -217,15 +217,15 @@ class SupervisedKeypointDataset(data.Dataset):
                 pixelxy[0:2, i] * ratio,
                 heatmap_size=self._network_out_map_width)
 
-        # The binary mask
-        if entry.has_mask:
-            warped_mask, _ = get_bbox_cropped_image_path(
-                imgpath=entry.binary_mask_path, is_rgb=False,
-                bbox_topleft=entry.bbox_top_left, bbox_bottomright=entry.bbox_bottom_right,
-                patch_width=self._network_in_patch_width, patch_height=self._network_in_patch_height,
-                bbox_scale=self._config.bbox_scale, on_boundary=entry.on_boundary,
-                scale=scale, rot_rad=rot_rad)
-            processed_entry.cropped_binary_mask = warped_mask
+        # # The binary mask
+        # if entry.has_mask:
+        #     warped_mask, _ = get_bbox_cropped_image_path(
+        #         imgpath=entry.binary_mask_path, is_rgb=False,
+        #         bbox_topleft=entry.bbox_top_left, bbox_bottomright=entry.bbox_bottom_right,
+        #         patch_width=self._network_in_patch_width, patch_height=self._network_in_patch_height,
+        #         bbox_scale=self._config.bbox_scale, on_boundary=entry.on_boundary,
+        #         scale=scale, rot_rad=rot_rad)
+        #     processed_entry.cropped_binary_mask = warped_mask
 
         # Seems ok
         return processed_entry

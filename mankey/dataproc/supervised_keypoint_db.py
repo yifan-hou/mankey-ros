@@ -13,17 +13,17 @@ class SupervisedKeypointDBEntry:
     # # The path to depth image
     # depth_image_path = ''
 
-    # The path to mask image
-    binary_mask_path = ''
+    # # The path to mask image
+    # binary_mask_path = ''
 
     # # If length zero, indicates no depth
     # @property
     # def has_depth(self):
     #     return len(self.depth_image_path) > 0
 
-    @property
-    def has_mask(self):
-        return len(self.binary_mask_path) > 0
+    # @property
+    # def has_mask(self):
+    #     return len(self.binary_mask_path) > 0
 
     # The bounding box is tight
     bbox_top_left = PixelCoord()

@@ -27,7 +27,7 @@ raw_image_root = os.path.join(scene_data_root, 'processed/images')
 
 def draw_image_keypoint(image, keypoint_xy_depth: List[int]):
     img_clone = image.copy()
-    cv2.circle(img_clone, center=(keypoint_xy_depth[0], keypoint_xy_depth[1]), radius=10, color=(255, 255, 0))
+    cv2.circle(img_clone, center=(keypoint_xy_depth[0], keypoint_xy_depth[1]), radius=5, color=(255, 255, 0))
     cv2.imshow('image', img_clone)
     cv2.waitKey(0)
 

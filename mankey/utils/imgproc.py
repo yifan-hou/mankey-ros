@@ -528,7 +528,7 @@ def draw_image_keypoint(
         # Draw it
         cv2.circle(img_clone,
                    center=(int(keypoint_pixelxy_depth[0, i]), int(keypoint_pixelxy_depth[1, i])),
-                   radius=8, color=(255, 255, 0))
+                   radius=4, color=(255, 0, 0), thickness=2)
 
     # OK
     return img_clone

@@ -10,10 +10,10 @@ import mankey.network.predict as predict
 
 # netconfigs, must be the same as heatmap_xxxx.py
 net_config = resnet_nostage.ResnetNoStageConfig()
-net_config.num_keypoints = 3
-net_config.image_channels = 3
-net_config.depth_per_keypoint = 1
-net_config.num_layers = 34
+net_config.num_keypoints = parameter.net_config_num_keypoints
+net_config.image_channels = parameter.net_config_image_channels
+net_config.depth_per_keypoint = parameter.net_config_depth_per_keypoint
+net_config.num_layers = parameter.net_config_num_layers
 
 # The construction of network
 def construct_resnet_nostage(chkpt_path):
@@ -130,6 +130,18 @@ def proc_input_img_internal(
     imgproc_out.bbox2patch = bbox2patch
     imgproc_out.warped_rgb = warped_rgb
     # imgproc_out.warped_depth = warped_depth
+
+    # print('debug: bbox_topleft:', bbox_topleft)
+    # print('debug: bbox_bottomright:', bbox_bottomright)
+    # print('debug: rgb.shape:', rgb.shape)
+    # print('debug: warped_rgb.shape:', warped_rgb.shape)
+    # import cv2
+    # cv2.imshow('wraped_rgb', warped_rgb)
+    # cv2.waitKey(0) # waits until a key is pressed
+    # cv2.destroyAllWindows() # destroys the window showing image
+    # print('debug: normalized_rgb.shape:', normalized_rgb.shape)
+    # print('debug: stacked_rgb.shape:', stacked_rgb.shape)
+
     return imgproc_out
 
 
@@ -282,11 +294,10 @@ def get_3d_prediction(
     keypoint_xy = keypoint_xy_patch[0:2, :]
     keypoint_xy_homo = np.ones([3, keypoint_xy_patch.shape[1]])
     keypoint_xy_homo[0:2, :] = keypoint_xy
-    print('patch2bbox: ', patch2bbox)
-    print('keypoint_xy_homo: ', keypoint_xy_homo)
-    input('haha')
+    # print('keypoint_xy_patch: ', keypoint_xy_patch)
+    # print('patch2bbox: ', patch2bbox)
+    # print('keypoint_xy_homo: ', keypoint_xy_homo)
     keypoint_xy_img = patch2bbox.dot(keypoint_xy_homo)
-    # keypoint_xy_img[2, :] = keypoint_xy_patch[2, :]
 
     # # The point in camera frame
     # camera_vertex = np.zeros_like(keypoint_xy_img)

@@ -22,13 +22,12 @@ n_epoch = 121
 def construct_dataset(is_train: bool) -> (SupervisedKeypointDataset, SupervisedKeypointDatasetConfig):
     # Construct the db info
     db_config = SpartanSupvervisedKeypointDBConfig()
-    db_config.keypoint_yaml_name = 'mug_3_keypoint_image.yaml'
-    db_config.pdc_data_root = '/home/ANT.AMAZON.COM/yifanhou/git/manip_dataset/data'
+    db_config.keypoint_yaml_name = 'keypoint_bin_left_edge3.yaml'
+    db_config.pdc_data_root = '/home/ANT.AMAZON.COM/yifanhou/Documents/keypoint_data/data_eoat_celtics_edge_focus/'
     if is_train:
-        db_config.config_file_path = '/home/ANT.AMAZON.COM/yifanhou/git/mankey-ros/mankey/config/mugs_up_with_flat_logs.txt'
+        db_config.scene_list_file_path = '/home/ANT.AMAZON.COM/yifanhou/Documents/keypoint_data/scene_list_3_left_wall_insertion.txt'
     else:
-        db_config.config_file_path = '/home/ANT.AMAZON.COM/yifanhou/git/mankey-ros/mankey/config/mugs_up_with_flat_test_logs.txt'
-
+        db_config.scene_list_file_path = '/home/ANT.AMAZON.COM/yifanhou/Documents/keypoint_data/scene_list_3_left_wall_insertion_test.txt'
     # Construct the database
     print(db_config)
     database = SpartanSupervisedKeypointDatabase(db_config)
@@ -47,10 +46,10 @@ def construct_dataset(is_train: bool) -> (SupervisedKeypointDataset, SupervisedK
 
 def construct_network():
     net_config = ResnetNoStageConfig()
-    net_config.num_keypoints = 3
-    net_config.image_channels = 3
-    net_config.depth_per_keypoint = 1
-    net_config.num_layers = 34
+    net_config.num_keypoints = parameter.net_config_num_keypoints
+    net_config.image_channels = parameter.net_config_image_channels
+    net_config.depth_per_keypoint = parameter.net_config_depth_per_keypoint
+    net_config.num_layers = parameter.net_config_num_layers
     network = ResnetNoStage(net_config)
     return network, net_config
 
@@ -172,12 +171,12 @@ def train(checkpoint_dir: str, start_from_ckpnt: str = '', save_epoch_offset: in
 if __name__ == '__main__':
     checkpoint_dir = os.path.join(os.path.dirname(__file__), 'ckpnt')
 
-    # train
-    train(checkpoint_dir=checkpoint_dir)
+    # # train
+    # train(checkpoint_dir=checkpoint_dir)
 
-    # # visualization
-    # net_path = os.path.join(checkpoint_dir, 'checkpoint-116.pth')
-    # tmp_dir = 'tmp'
-    # if not os.path.exists(tmp_dir):
-    #    os.mkdir(tmp_dir)
-    # visualize(net_path, tmp_dir)
+    # visualization
+    net_path = os.path.join(checkpoint_dir, 'checkpoint-120.pth')
+    tmp_dir = 'tmp'
+    if not os.path.exists(tmp_dir):
+       os.mkdir(tmp_dir)
+    visualize(net_path, tmp_dir)

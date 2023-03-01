@@ -6,6 +6,12 @@ keypoint_xy_key = 'normalized_keypoint_xy'
 keypoint_validity_key = 'validity'
 target_heatmap_key = 'target_heatmap'
 
+
+net_config_num_keypoints = 2
+net_config_image_channels = 3
+net_config_depth_per_keypoint = 1
+net_config_num_layers = 34
+
 # The bounding box given by Database is tight, make it losser
 bbox_scale = 1.25
 
