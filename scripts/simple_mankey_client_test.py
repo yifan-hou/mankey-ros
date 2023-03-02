@@ -126,10 +126,12 @@ def main(visualize):
                                  cv2.VideoWriter_fourcc(*'mp4v'),
                                  10, (720,540))
     start_time = perf_counter()
+    last_time = 0
     img_count = 0
     for img_file_name in sorted(os.listdir(test_data_path)):
-        print(img_file_name)
-        if img_count == 0:
+        print(img_file_name, ', time: ', perf_counter() - last_time)
+        last_time = perf_counter()
+        if img_count == 1:
             start_time = perf_counter()
         img_count += 1
 
